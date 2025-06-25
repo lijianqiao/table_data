@@ -1,0 +1,19 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# IDE 相关文件
+.idea/
+.vscode/
+
+# 忽略的文件夹
+*test*
+logs/
+.mypy_cache/
