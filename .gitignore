@@ -12,8 +12,11 @@ wheels/
 # IDE 相关文件
 .idea/
 .vscode/
-
-# 忽略的文件夹
+.cursor/
+.github/
 *test*
 logs/
 .mypy_cache/
+
+# 忽略的文件
+.cursorrules
