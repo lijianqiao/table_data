@@ -6,6 +6,8 @@
 @Docs: 主UI界面
 """
 
+import os
+
 import streamlit as st
 
 from app.core.registry import AppRegistry
@@ -26,6 +28,9 @@ class MainUI:
             app_registry: 应用注册器
         """
         self.app_registry = app_registry
+        # 将应用注册器存储到session_state供应用使用
+        if not hasattr(st.session_state, "_app_registry"):
+            st.session_state._app_registry = app_registry
         logger.info("主UI初始化完成")
 
     @log_function_calls()
@@ -61,8 +66,8 @@ class MainUI:
         """创建主布局"""
         logger.debug("创建主页面布局")
 
-        st.title("📊 数据表处理系统")
-        st.markdown("---")
+        # st.title("📊 数据表处理系统")
+        # st.markdown("---")
 
     @log_function_calls()
     def _render_sidebar(self) -> None:
@@ -70,7 +75,7 @@ class MainUI:
         logger.debug("开始渲染侧边栏")
 
         with st.sidebar:
-            st.header("🔧 应用控制")
+            st.header("数据表处理系统")
 
             # 应用选择器
             self._render_app_selector()
@@ -98,20 +103,33 @@ class MainUI:
 
             logger.debug(f"可用应用: {app_names}")
 
-            selected_app_name = st.selectbox(
+            current_app = SessionManager.get_state("current_app")
+
+            # 设置默认索引
+            if current_app and current_app in app_names:
+                default_index = app_names.index(current_app)
+            else:
+                # 如果当前应用不在列表中或为None，默认选择欢迎页
+                if "欢迎页" in app_names:
+                    default_index = app_names.index("欢迎页")
+                else:
+                    default_index = 0
+
+            selected_option = st.selectbox(
                 "选择要使用的应用：",
                 options=app_names,
+                index=default_index,
                 format_func=lambda x: f"{x} - {available_apps[x]}",
                 key="selected_app_name",
             )
 
-            # 只有当选择的应用发生变化时，才更新状态并清空相关数据
-            current_app = SessionManager.get_state("current_app")
-            if selected_app_name != current_app:
-                logger.info(f"应用切换: {current_app} -> {selected_app_name}")
-                SessionManager.set_state("current_app", selected_app_name)
+            # 处理应用选择
+            if selected_option != current_app:
+                logger.info(f"应用切换: {current_app} -> {selected_option}")
+                SessionManager.set_state("current_app", selected_option)
                 # 清空相关状态，但保留处理后的数据
                 SessionManager.clear_state(["selected_columns"])
+                st.rerun()
 
         except Exception as e:
             error_msg = f"应用选择器渲染失败: {str(e)}"
@@ -130,12 +148,15 @@ class MainUI:
         **版本**: 1.0.0
         **作者**: lijianqiao
 
-        #### 🔗 相关链接
-        - [GitHub](https://github.com)
-        - [文档](https://docs.github.com)
+        #### 支持开发
         """
 
-        st.markdown(project_info)
+        st.markdown(project_info, unsafe_allow_html=True)
+        # 获取项目根目录
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        coffee_image_path = os.path.join(project_root, "img", "coffee.png")
+        st.sidebar.image(coffee_image_path)
+        st.sidebar.markdown("---")
 
     @log_function_calls()
     def _render_main_content(self) -> None:
@@ -144,52 +165,14 @@ class MainUI:
 
         current_app_name = SessionManager.get_state("current_app")
 
+        # 如果没有选择应用，默认显示欢迎页
         if not current_app_name:
-            # 显示欢迎页面
-            self._render_welcome_page()
-        else:
-            # 渲染选中的应用
-            self._render_selected_app(current_app_name)
+            current_app_name = "欢迎页"
+            SessionManager.set_state("current_app", current_app_name)
+            logger.info("设置默认应用: 欢迎页")
 
-    def _render_welcome_page(self) -> None:
-        """渲染欢迎页面"""
-        logger.debug("渲染欢迎页面")
-
-        st.markdown("""
-        ## 👋 欢迎使用数据表处理系统
-
-        ### 🚀 快速开始
-        1. **选择应用**: 在左侧边栏选择您需要的数据处理应用
-        2. **上传文件**: 根据应用指引上传您的数据文件
-        3. **处理数据**: 按照应用流程处理您的数据
-        4. **导出结果**: 下载处理后的数据文件
-
-        ### 💡 功能特色
-        - 📁 **多格式支持**: 支持 CSV、Excel 等常见格式
-        - 🔗 **智能合并**: 自动识别和合并多个数据表
-        - ⚙️ **数据预处理**: 提供清理、去重等数据预处理功能
-        - 📤 **高效导出**: 优化的数据导出，支持大文件处理
-
-        ### 📊 系统状态
-        """)
-
-        # 显示系统状态
-        try:
-            available_apps = self.app_registry.get_available_apps()
-            col1, col2 = st.columns(2)
-
-            with col1:
-                st.metric("可用应用", len(available_apps))
-
-            with col2:
-                session_status = "活跃" if SessionManager.get_state("current_app") else "待选择"
-                st.metric("会话状态", session_status)
-
-            logger.debug(f"系统状态显示完成 | 可用应用: {len(available_apps)}")
-
-        except Exception as e:
-            logger.exception(f"系统状态显示失败: {str(e)}")
-            st.error("系统状态获取失败")
+        # 渲染选中的应用
+        self._render_selected_app(current_app_name)
 
     @log_function_calls()
     def _render_selected_app(self, app_name: str) -> None:

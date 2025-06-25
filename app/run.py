@@ -78,6 +78,13 @@ class AppOrchestrator:
         logger.info("开始注册应用")
 
         try:
+            # 注册欢迎页应用（默认应用）
+            from app.welcome.welcome_app import WelcomeApp
+
+            self.app_registry.register_app(WelcomeApp)
+            logger.info("注册应用: WelcomeApp (默认)")
+
+            # 注册数据合并应用
             from app.merge_extract.merge import MergeApp
 
             self.app_registry.register_app(MergeApp)

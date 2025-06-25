@@ -22,8 +22,8 @@ class LayoutManager:
         st.set_page_config(page_title="数据表处理系统", page_icon="📊", layout="wide", initial_sidebar_state="expanded")
 
         # 主标题
-        st.title("📊 数据表处理系统")
-        st.markdown("---")
+        # st.title("📊 数据表处理系统")
+        # st.markdown("---")
 
     @staticmethod
     def create_sidebar():
